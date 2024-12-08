@@ -15,14 +15,26 @@ var disableCommand = &discordgo.ApplicationCommandOption{
 func handleDisableCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	guild := i.GuildID
 
-	storage.UnregisterUser(i.Member.User.ID, guild)
+	message := "You will no longer be notified"
+	var err error
 
-	slog.Info("User unregistered for guild", "user", i.Member.User.ID, "guild", guild)
+	if i.Member == nil {
+		message = "You can only use this command in a server"
+	} else {
+		err = storage.UnregisterUser(i.Member.User.ID, guild)
 
-	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		if err != nil {
+			slog.Error("Could not unregister user", "user", i.Member.User.ID, "guild", guild, "error", err)
+			message = "Could not unregister you. Please try again later."
+		} else {
+			slog.Info("User unregistered for guild", "user", i.Member.User.ID, "guild", guild)
+		}
+	}
+
+	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "You will no longer be notified.",
+			Content: message,
 		},
 	})
 

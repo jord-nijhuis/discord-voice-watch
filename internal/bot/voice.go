@@ -52,7 +52,14 @@ func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 		"occupancy", storage.GetOccupancy(guildID),
 	)
 
-	if storage.GetOccupancy(guildID) == 1 && storage.HasUsers(guildID) {
+	hasUsersToNotify, err := storage.HasUsersToNotify(guildID)
+
+	if err != nil {
+		slog.Error("Could not check if there are users to notify", "guild", guildID, "error", err)
+		return
+	}
+
+	if storage.GetOccupancy(guildID) == 1 && hasUsersToNotify {
 		// Start notification process
 		go notifyIfStillOccupied(s, guildID)
 	}
@@ -84,8 +91,18 @@ func notifyIfStillOccupied(s *discordgo.Session, guildID string) {
 		names = append(names, utils.GetDisplayName(s, guildID, userID))
 	}
 
-	for _, userID := range storage.GetUsers(guildID) {
-		// The user is now in the voice channel
+	usersToNotify, err := storage.GetUsersToNotify(guildID)
+
+	if err != nil {
+		slog.Error("Could not retrieve users to notify for guild",
+			"id", guildID,
+			"error", err,
+		)
+		return
+	}
+
+	for _, userID := range usersToNotify {
+		// Don't send a message to the user if they are already in the voice chat
 		if slices.Contains(usersInVoice, userID) {
 			//continue
 		}
@@ -106,6 +123,16 @@ func notifyIfStillOccupied(s *discordgo.Session, guildID string) {
 				verb,
 				guild.Name),
 		)
+
+		err = storage.UpdateLastNotificationAt(userID, guildID)
+
+		if err != nil {
+			slog.Error("Could not update last notification time",
+				"user", userID,
+				"guild", guildID,
+				"error", err,
+			)
+		}
 	}
 }
 
@@ -123,6 +150,13 @@ func SyncOccupancies(s *discordgo.Session) error {
 
 		for _, userGuild := range userGuilds {
 			after = userGuild.ID
+
+			err = storage.CreateServer(userGuild.ID)
+
+			if err != nil {
+				slog.Warn("Could not create server", "id", userGuild.ID, "error", err)
+				continue
+			}
 
 			slog.Info("Initializing voice channel occupancy for guild", "name", userGuild.Name, "id", userGuild.ID)
 

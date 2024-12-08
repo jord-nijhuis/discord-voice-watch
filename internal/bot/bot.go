@@ -3,6 +3,7 @@ package bot
 import (
 	"discord-voice-watch/internal/commands"
 	"discord-voice-watch/internal/config"
+	"discord-voice-watch/internal/storage"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"log/slog"
@@ -26,6 +27,13 @@ func Start() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(log.Writer(), &slog.HandlerOptions{
 		Level: Configuration.Logging.Level,
 	})))
+
+	err = storage.InitializeDatabase()
+
+	if err != nil {
+		slog.Error("Could not initialize database", err)
+		return
+	}
 
 	// Initialize Discord session
 	dg, err := discordgo.New("Bot " + Configuration.Discord.Token)
