@@ -12,12 +12,12 @@ import (
 	"syscall"
 )
 
-var Configuration config.Config
+var cfg config.Config
 
 func Start() {
 	// Load the configuration
 	var err error
-	Configuration, err = config.LoadConfig()
+	cfg, err = config.LoadConfig()
 
 	if err != nil {
 		slog.Error("Could not load config file", "error", err)
@@ -25,7 +25,7 @@ func Start() {
 	}
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(log.Writer(), &slog.HandlerOptions{
-		Level: Configuration.Logging.Level,
+		Level: cfg.Logging.Level,
 	})))
 
 	err = storage.InitializeDatabase()
@@ -36,7 +36,7 @@ func Start() {
 	}
 
 	// Initialize Discord session
-	dg, err := discordgo.New("Bot " + Configuration.Discord.Token)
+	dg, err := discordgo.New("Bot " + cfg.Discord.Token)
 	if err != nil {
 		slog.Error("Could not create discord session", err)
 		return
@@ -67,7 +67,7 @@ func Start() {
 		return
 	}
 
-	slog.Info("Bot is running. Press CTRL+C to exit.")
+	slog.Info("Notifications is running. Press CTRL+C to exit.")
 
 	// Make sure we correctly close the bot when we receive a signal
 	sc := make(chan os.Signal, 1)

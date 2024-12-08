@@ -15,8 +15,8 @@ var disableCommand = &discordgo.ApplicationCommandOption{
 func handleDisableCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	guild := i.GuildID
 
-	message := "You will no longer be notified"
 	var err error
+	message := "You will no longer be notified"
 
 	if i.Member == nil {
 		message = "You can only use this command in a server"

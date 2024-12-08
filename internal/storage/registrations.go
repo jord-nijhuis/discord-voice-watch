@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"discord-voice-watch/internal/config"
 	"errors"
 	"fmt"
 	"gorm.io/gorm/clause"
@@ -96,9 +97,17 @@ func GetUsersToNotify(serverID string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get server: %w", err)
 	}
 
+	cfg, err := config.GetConfig()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config: %w", err)
+	}
+
 	var users []User
 
-	result := db.Joins("INNER JOIN registrations ON registrations.user_id = users.id").Where("server_id = ?", server.ID).Find(&users)
+	lastNotifiedThreshold := time.Now().Add(-cfg.Notifications.DelayBetweenMessages)
+
+	result := db.Joins("INNER JOIN registrations ON registrations.user_id = users.id AND registrations.last_notification_at < ?", lastNotifiedThreshold).Where("server_id = ?", server.ID).Find(&users)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to find users: %w", result.Error)

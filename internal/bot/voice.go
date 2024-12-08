@@ -66,7 +66,7 @@ func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 }
 
 func notifyIfStillOccupied(s *discordgo.Session, guildID string) {
-	time.Sleep(time.Duration(Configuration.Bot.Delay) * time.Second)
+	time.Sleep(cfg.Notifications.DelayBeforeSending)
 
 	var guild, err = utils.GetGuild(s, guildID)
 

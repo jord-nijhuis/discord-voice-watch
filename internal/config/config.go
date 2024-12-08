@@ -7,13 +7,14 @@ import (
 	"log"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 // Config The configuration for this bot
 type Config struct {
-	Discord DiscordConfig
-	Logging LoggingConfig
-	Bot     BotConfig
+	Discord       DiscordConfig
+	Logging       LoggingConfig
+	Notifications NotificationsConfig
 }
 
 // DiscordConfig The configuration related to discord
@@ -27,14 +28,16 @@ type LoggingConfig struct {
 	File  string
 }
 
-type BotConfig struct {
-	Delay int
+type NotificationsConfig struct {
+	DelayBeforeSending   time.Duration `mapstructure:"delay-before-sending"`
+	DelayBetweenMessages time.Duration `mapstructure:"delay-between-messages"`
 }
+
+var config Config
 
 // LoadConfig Loads the configuration from the config file
 // The config file should be named config.yaml and should be in the working directory
 func LoadConfig() (Config, error) {
-	var config Config
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -42,7 +45,8 @@ func LoadConfig() (Config, error) {
 
 	viper.SetDefault("Discord.Token", "")
 	viper.SetDefault("Logging.Level", "info")
-	viper.SetDefault("Bot.Delay", "60")
+	viper.SetDefault("Notifications.delay-before-sending", time.Minute)
+	viper.SetDefault("Notifications.delay-between-messages", time.Hour)
 
 	err := viper.ReadInConfig() // Find and read the config file
 
@@ -81,4 +85,12 @@ func parseLogLevel(level string) slog.Level {
 		log.Printf("Unknown log level: %s, defaulting to INFO", level)
 		return slog.LevelInfo
 	}
+}
+
+func GetConfig() (Config, error) {
+	if config == (Config{}) {
+		return LoadConfig()
+	}
+
+	return config, nil
 }
