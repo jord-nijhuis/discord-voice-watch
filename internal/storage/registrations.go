@@ -9,9 +9,13 @@ import (
 )
 
 type Registration struct {
-	UserID             uint `gorm:"primaryKey"`
-	ServerID           uint `gorm:"primaryKey"`
+	UserID             uint   `gorm:"primaryKey"`
+	User               User   `gorm:"foreignKey:UserID"`
+	ServerID           uint   `gorm:"primaryKey"`
+	Server             Server `gorm:"foreignKey:ServerID"`
 	LastNotificationAt *time.Time
+	MessageID          *string
+	ChannelID          *string
 }
 
 func RegisterUser(userID string, serverID string) error {
@@ -147,7 +151,7 @@ func HasUsersToNotify(serverID string) (bool, error) {
 	return count > 0, nil
 }
 
-func UpdateLastNotificationAt(userID string, serverID string) error {
+func UpdateNotification(userID string, serverID string, notifiedAt time.Time, channelId *string, messageId *string) error {
 	db, err := getDatabase()
 
 	if err != nil {
@@ -168,7 +172,7 @@ func UpdateLastNotificationAt(userID string, serverID string) error {
 
 	registration := &Registration{UserID: user.ID, ServerID: server.ID}
 
-	result := db.Model(&registration).Update("last_notification_at", time.Now())
+	result := db.Model(&registration).Update("last_notification_at", notifiedAt).Update("channel_id", channelId).Update("message_id", messageId)
 
 	if result.Error != nil {
 		return fmt.Errorf("failed to update registration: %w", result.Error)
@@ -179,4 +183,28 @@ func UpdateLastNotificationAt(userID string, serverID string) error {
 	}
 
 	return nil
+}
+
+func GetPreviouslyNotifiedRegistrations(serverID string) ([]Registration, error) {
+	db, err := getDatabase()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database: %w", err)
+	}
+
+	server, err := GetServer(serverID)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get server: %w", err)
+	}
+
+	var registrations []Registration
+
+	result := db.Preload("User").Where("server_id = ? AND last_notification_at IS NOT NULL", server.ID).Find(&registrations)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to find registrations: %w", result.Error)
+	}
+
+	return registrations, nil
 }

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log/slog"
-	"slices"
-	"time"
 )
 
 func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
@@ -18,6 +16,11 @@ func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 		storage.DecrementOccupancy(guildID)
 
 		slog.Info("User left voice channel for guild", "user", v.UserID, "guild", guildID, "occupancy", storage.GetOccupancy(guildID))
+
+		if storage.GetOccupancy(guildID) == 0 {
+			go removePreviousNotifications(s, guildID)
+		}
+
 		return
 	}
 
@@ -39,8 +42,10 @@ func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 				"newOccupancy", storage.GetOccupancy(v.GuildID),
 			)
 
+			if storage.GetOccupancy(v.BeforeUpdate.GuildID) == 0 {
+				go removePreviousNotifications(s, v.BeforeUpdate.GuildID)
+			}
 		}
-
 	}
 
 	// User joined a voice channel
@@ -61,78 +66,7 @@ func onVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 
 	if storage.GetOccupancy(guildID) == 1 && hasUsersToNotify {
 		// Start notification process
-		go notifyIfStillOccupied(s, guildID)
-	}
-}
-
-func notifyIfStillOccupied(s *discordgo.Session, guildID string) {
-	time.Sleep(cfg.Notifications.DelayBeforeSending)
-
-	var guild, err = utils.GetGuild(s, guildID)
-
-	if err != nil {
-
-		slog.Error("Could not retrieve guild for id",
-			"id", guildID,
-			"error", err,
-		)
-		return
-	}
-
-	usersInVoice := utils.GetAllUsersInVoiceChannel(guild)
-
-	if len(usersInVoice) == 0 {
-		return
-	}
-
-	var names []string
-
-	for _, userID := range usersInVoice {
-		names = append(names, utils.GetDisplayName(s, guildID, userID))
-	}
-
-	usersToNotify, err := storage.GetUsersToNotify(guildID)
-
-	if err != nil {
-		slog.Error("Could not retrieve users to notify for guild",
-			"id", guildID,
-			"error", err,
-		)
-		return
-	}
-
-	for _, userID := range usersToNotify {
-		// Don't send a message to the user if they are already in the voice chat
-		if slices.Contains(usersInVoice, userID) {
-			//continue
-		}
-
-		slog.Info("Sending notification for guild to user", "guild", guildID, "user", userID)
-
-		verb := "is"
-
-		if len(names) > 1 {
-			verb = "are"
-		}
-
-		utils.SendDirectMessage(
-			s,
-			userID,
-			fmt.Sprintf("%s %s now in voice chat of %s",
-				utils.JoinWithAnd(names),
-				verb,
-				guild.Name),
-		)
-
-		err = storage.UpdateLastNotificationAt(userID, guildID)
-
-		if err != nil {
-			slog.Error("Could not update last notification time",
-				"user", userID,
-				"guild", guildID,
-				"error", err,
-			)
-		}
+		go notifyForGuild(s, guildID)
 	}
 }
 

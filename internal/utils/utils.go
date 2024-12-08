@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log/slog"
 	"strings"
@@ -20,17 +21,19 @@ func JoinWithAnd(items []string) string {
 	return strings.Join(items[:n-1], ", ") + " and " + items[n-1]
 }
 
-func SendDirectMessage(s *discordgo.Session, userID string, message string) {
+func SendDirectMessage(s *discordgo.Session, userID string, message string) (*discordgo.Message, error) {
 	channel, err := s.UserChannelCreate(userID)
 	if err != nil {
-		slog.Error("Could not create a DM channel", "user", userID, "error", err)
-		return
+		return nil, fmt.Errorf("could not create a DM channel: %w", err)
 	}
-	_, err = s.ChannelMessageSend(channel.ID, message)
+
+	m, err := s.ChannelMessageSend(channel.ID, message)
 
 	if err != nil {
-		slog.Error("Could not send a DM message", "user", userID, "channel", channel.ID, "error", err)
+		return nil, fmt.Errorf("could not send a message to the user: %w", err)
 	}
+
+	return m, nil
 }
 
 func GetAllUsersInVoiceChannel(guild *discordgo.Guild) []string {
