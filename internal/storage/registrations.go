@@ -74,7 +74,7 @@ func GetUsersToNotify(serverID string) ([]string, error) {
 
 	lastNotifiedThreshold := time.Now().Add(-cfg.Notifications.DelayBetweenMessages)
 
-	rows, err := db.Query("SELECT user_id FROM registrations WHERE server_id = ? AND (registrations.last_notified_at IS NULL OR last_notified_at < ?)", serverID, lastNotifiedThreshold)
+	rows, err := db.Query("SELECT user_id FROM registrations WHERE server_id = ? AND (last_notified_at IS NULL OR last_notified_at < ?)", serverID, lastNotifiedThreshold)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to find users: %w", err)

@@ -44,7 +44,7 @@ func InitializeDatabase() error {
 	}
 
 	err = m.Up()
-	// Run migrations
+
 	if err != nil {
 
 		if errors.Is(err, migrate.ErrNoChange) {

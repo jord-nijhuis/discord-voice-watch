@@ -1,6 +1,7 @@
-package bot
+package notifications
 
 import (
+	"discord-voice-watch/internal/config"
 	"discord-voice-watch/internal/storage"
 	"discord-voice-watch/internal/utils"
 	"fmt"
@@ -10,10 +11,18 @@ import (
 	"time"
 )
 
-func notifyForGuild(s *discordgo.Session, guildID string) {
+func NotifyForGuild(s *discordgo.Session, guildID string) {
+
+	cfg, err := config.GetConfig()
+
+	if err != nil {
+		slog.Error("Could not get config", "error", err)
+		return
+	}
+
 	time.Sleep(cfg.Notifications.DelayBeforeSending)
 
-	var guild, err = utils.GetGuild(s, guildID)
+	guild, err := utils.GetGuild(s, guildID)
 
 	if err != nil {
 
@@ -90,7 +99,14 @@ func notifyForGuild(s *discordgo.Session, guildID string) {
 	}
 }
 
-func removePreviousNotifications(s *discordgo.Session, guildID string) {
+func RemovePreviousNotifications(s *discordgo.Session, guildID string) {
+	cfg, err := config.GetConfig()
+
+	if err != nil {
+		slog.Error("Could not get config", "error", err)
+		return
+	}
+
 	time.Sleep(cfg.Notifications.DelayBeforeSending)
 
 	if storage.GetOccupancy(guildID) > 0 {
@@ -136,5 +152,32 @@ func removePreviousNotifications(s *discordgo.Session, guildID string) {
 				"error", err,
 			)
 		}
+	}
+}
+
+func SendWelcomeMessage(session *discordgo.Session, guild *discordgo.Guild) {
+
+	slog.Info("Sending a welcome message", "guild", guild.ID)
+	// Choose a channel to send the message
+	// Typically, the first available text channel is used
+	var defaultChannel *discordgo.Channel
+	for _, channel := range guild.Channels {
+		if channel.Type == discordgo.ChannelTypeGuildText {
+			defaultChannel = channel
+			break
+		}
+	}
+
+	if defaultChannel == nil {
+		slog.Info("No suitable channel found for welcome message", "guild", guild.ID)
+		return
+	}
+	// If a suitable channel is found, send a message
+	_, err := session.ChannelMessageSend(defaultChannel.ID, "Hello there 👋! You can use me to get notified when someone starts voice chatting in this server."+
+		" Use `/voice-watch enable` to enable notifications and as soon as someone joins a voice channel, I'll let you "+
+		"know in a direct message. You can always disable me by using `/voice-watch disable`.")
+
+	if err != nil {
+		slog.Error("Could not send welcome message", "guild", guild.ID, "channel", defaultChannel.ID, "error", err)
 	}
 }

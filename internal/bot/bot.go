@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"discord-voice-watch/internal/bot/events"
 	"discord-voice-watch/internal/commands"
 	"discord-voice-watch/internal/config"
 	"discord-voice-watch/internal/storage"
@@ -43,8 +44,9 @@ func Start() {
 	}
 
 	// Add handlers
-	dg.AddHandler(commands.OnInteractionCreate)
-	dg.AddHandler(onVoiceStateUpdate)
+	dg.AddHandler(events.OnInteractionCreate)
+	dg.AddHandler(events.OnVoiceStateUpdate)
+	dg.AddHandler(events.OnGuildCreate)
 
 	// Make sure we have tbe right permissions
 	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates
@@ -58,14 +60,6 @@ func Start() {
 
 	// Register slash commands
 	commands.RegisterCommands(dg)
-
-	// Sync the occupancies
-	err = SyncOccupancies(dg)
-
-	if err != nil {
-		slog.Error("Could not sync occupancy", err)
-		return
-	}
 
 	slog.Info("Notifications is running. Press CTRL+C to exit.")
 

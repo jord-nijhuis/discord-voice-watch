@@ -15,22 +15,14 @@ func RegisterCommands(s *discordgo.Session) {
 		},
 	}
 
-	for _, cmd := range commands {
-		_, err := s.ApplicationCommandCreate(s.State.User.ID, "", cmd)
-		if err != nil {
-			slog.Error("Could not create command", "command", cmd, "error", err)
-		}
+	_, err := s.ApplicationCommandBulkOverwrite(s.State.User.ID, "", commands)
+
+	if err != nil {
+		slog.Error("Could not create commands", "commands", commands, "error", err)
 	}
 }
 
-func OnInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	switch i.Type {
-	case discordgo.InteractionApplicationCommand:
-		handleCommand(s, i)
-	}
-}
-
-func handleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func HandleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	if i.ApplicationCommandData().Name != "voice-watch" {
 		slog.Warn("Unknown command", "command", i.ApplicationCommandData().Name)
