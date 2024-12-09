@@ -85,13 +85,6 @@ func SyncOccupancies(s *discordgo.Session) error {
 		for _, userGuild := range userGuilds {
 			after = userGuild.ID
 
-			err = storage.CreateServer(userGuild.ID)
-
-			if err != nil {
-				slog.Warn("Could not create server", "id", userGuild.ID, "error", err)
-				continue
-			}
-
 			slog.Info("Initializing voice channel occupancy for guild", "name", userGuild.Name, "id", userGuild.ID)
 
 			// Fetch the guild's voice states

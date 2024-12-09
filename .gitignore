@@ -39,5 +39,8 @@ fabric.properties
 .idea/httpRequests
 .idea/caches/build_file_checksums.ser
 
+# The config file
 config.yaml
-voice-watch.db
+
+# The database files
+voice-watch.db*

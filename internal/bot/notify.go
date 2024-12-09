@@ -115,7 +115,7 @@ func removePreviousNotifications(s *discordgo.Session, guildID string) {
 			continue
 		}
 
-		slog.Info("Deleting previous notification for guild to user", "guild", guildID, "user", registration.User.DiscordID)
+		slog.Info("Deleting previous notification for guild to user", "guild", guildID, "user", registration.UserID)
 
 		err = s.ChannelMessageDelete(*registration.ChannelID, *registration.MessageID)
 
@@ -127,7 +127,7 @@ func removePreviousNotifications(s *discordgo.Session, guildID string) {
 			)
 		}
 
-		err = storage.UpdateNotification(registration.User.DiscordID, guildID, *registration.LastNotificationAt, nil, nil)
+		err = storage.UpdateNotification(registration.UserID, guildID, *registration.LastNotifiedAt, nil, nil)
 
 		if err != nil {
 			slog.Error("Could not update last notification time",

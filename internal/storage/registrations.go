@@ -1,21 +1,24 @@
 package storage
 
 import (
+	"database/sql"
 	"discord-voice-watch/internal/config"
 	"errors"
 	"fmt"
-	"gorm.io/gorm/clause"
 	"time"
 )
 
 type Registration struct {
-	UserID             uint   `gorm:"primaryKey"`
-	User               User   `gorm:"foreignKey:UserID"`
-	ServerID           uint   `gorm:"primaryKey"`
-	Server             Server `gorm:"foreignKey:ServerID"`
-	LastNotificationAt *time.Time
-	MessageID          *string
-	ChannelID          *string
+	// The user ID
+	UserID string
+	// The server ID the user is registered for
+	ServerID string
+	// The time the user was last notified
+	LastNotifiedAt *time.Time
+	// The channel ID of the last notification sent to the user for this server
+	ChannelID *string
+	// The message ID of the last notification sent to the user for this server
+	MessageID *string
 }
 
 func RegisterUser(userID string, serverID string) error {
@@ -25,30 +28,10 @@ func RegisterUser(userID string, serverID string) error {
 		return err
 	}
 
-	err = CreateUser(userID)
+	_, err = db.Exec("INSERT INTO registrations (user_id, server_id) VALUES (?, ?) ON CONFLICT DO NOTHING", userID, serverID)
 
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
-	}
-
-	user, err := GetUser(userID)
-
-	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
-	}
-
-	server, err := GetServer(serverID)
-
-	if err != nil {
-		return fmt.Errorf("failed to get server: %w", err)
-	}
-
-	registration := &Registration{UserID: user.ID, ServerID: server.ID}
-
-	result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&registration)
-
-	if result.Error != nil {
-		return fmt.Errorf("failed to create registration: %w", result.Error)
+		return fmt.Errorf("failed to create registration: %w", err)
 	}
 
 	return nil
@@ -61,27 +44,15 @@ func UnregisterUser(userID string, serverID string) error {
 		return err
 	}
 
-	user, err := GetUser(userID)
+	result, err := db.Exec("DELETE FROM registrations WHERE user_id = ? AND server_id = ?", userID, serverID)
 
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return fmt.Errorf("failed to delete registration: %w", err)
 	}
 
-	server, err := GetServer(serverID)
+	rowsAffected, err := result.RowsAffected()
 
-	if err != nil {
-		return fmt.Errorf("failed to get server: %w", err)
-	}
-
-	registration := &Registration{UserID: user.ID, ServerID: server.ID}
-
-	result := db.Delete(&registration)
-
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete registration: %w", result.Error)
-	}
-
-	if result.RowsAffected == 0 {
+	if err != nil || rowsAffected == 0 {
 		return errors.New("registration not found")
 	}
 
@@ -95,32 +66,38 @@ func GetUsersToNotify(serverID string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	server, err := GetServer(serverID)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get server: %w", err)
-	}
-
 	cfg, err := config.GetConfig()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config: %w", err)
 	}
 
-	var users []User
-
 	lastNotifiedThreshold := time.Now().Add(-cfg.Notifications.DelayBetweenMessages)
 
-	result := db.Joins("INNER JOIN registrations ON registrations.user_id = users.id AND registrations.last_notification_at < ?", lastNotifiedThreshold).Where("server_id = ?", server.ID).Find(&users)
+	rows, err := db.Query("SELECT user_id FROM registrations WHERE server_id = ? AND (registrations.last_notified_at IS NULL OR last_notified_at < ?)", serverID, lastNotifiedThreshold)
 
-	if result.Error != nil {
-		return nil, fmt.Errorf("failed to find users: %w", result.Error)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find users: %w", err)
 	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			fmt.Println("failed to close rows", err)
+		}
+	}(rows)
 
 	var userIDs []string
 
-	for _, user := range users {
-		userIDs = append(userIDs, user.DiscordID)
+	for rows.Next() {
+		var userID string
+
+		err := rows.Scan(&userID)
+		if err != nil {
+			return nil, err
+		}
+
+		userIDs = append(userIDs, userID)
 	}
 
 	return userIDs, nil
@@ -133,19 +110,14 @@ func HasUsersToNotify(serverID string) (bool, error) {
 		return false, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	var server Server
-	result := db.Where("discord_id = ?", serverID).First(&server)
+	row := db.QueryRow("SELECT COUNT(*) FROM registrations WHERE server_id = ?", serverID)
 
-	if result.Error != nil {
-		return false, fmt.Errorf("failed to find server: %w", result.Error)
-	}
+	var count int
 
-	var count int64
+	err = row.Scan(&count)
 
-	result = db.Model(&Registration{}).Where("server_id = ?", server.ID).Count(&count)
-
-	if result.Error != nil {
-		return false, fmt.Errorf("failed to count registrations: %w", result.Error)
+	if err != nil {
+		return false, fmt.Errorf("failed to count registrations: %w", err)
 	}
 
 	return count > 0, nil
@@ -158,27 +130,15 @@ func UpdateNotification(userID string, serverID string, notifiedAt time.Time, ch
 		return err
 	}
 
-	user, err := GetUser(userID)
+	result, err := db.Exec("UPDATE registrations SET last_notified_at = ?, channel_id = ?, message_id = ? WHERE user_id = ? AND server_id = ?", notifiedAt, channelId, messageId, userID, serverID)
 
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		return fmt.Errorf("failed to update registration: %w", err)
 	}
 
-	server, err := GetServer(serverID)
+	rowsAffected, err := result.RowsAffected()
 
-	if err != nil {
-		return fmt.Errorf("failed to get server: %w", err)
-	}
-
-	registration := &Registration{UserID: user.ID, ServerID: server.ID}
-
-	result := db.Model(&registration).Update("last_notification_at", notifiedAt).Update("channel_id", channelId).Update("message_id", messageId)
-
-	if result.Error != nil {
-		return fmt.Errorf("failed to update registration: %w", result.Error)
-	}
-
-	if result.RowsAffected == 0 {
+	if err != nil || rowsAffected == 0 {
 		return errors.New("registration not found")
 	}
 
@@ -192,18 +152,30 @@ func GetPreviouslyNotifiedRegistrations(serverID string) ([]Registration, error)
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	server, err := GetServer(serverID)
+	rows, err := db.Query("SELECT user_id, server_id, last_notified_at, channel_id, message_id FROM registrations WHERE server_id = ? AND last_notified_at IS NOT NULL", serverID)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get server: %w", err)
+		return nil, fmt.Errorf("failed to find registrations: %w", err)
 	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			fmt.Println("failed to close rows", err)
+		}
+	}(rows)
 
 	var registrations []Registration
 
-	result := db.Preload("User").Where("server_id = ? AND last_notification_at IS NOT NULL", server.ID).Find(&registrations)
+	for rows.Next() {
+		var registration Registration
 
-	if result.Error != nil {
-		return nil, fmt.Errorf("failed to find registrations: %w", result.Error)
+		err := rows.Scan(&registration.UserID, &registration.ServerID, &registration.LastNotifiedAt, &registration.ChannelID, &registration.MessageID)
+		if err != nil {
+			return nil, err
+		}
+
+		registrations = append(registrations, registration)
 	}
 
 	return registrations, nil
