@@ -1,5 +1,6 @@
 ![Voice Watch](/assets/banner.png)
-![GitHub Release](https://img.shields.io/github/v/release/jord-nijhuis/discord-voice-watch)
+
+[![GitHub Release](https://img.shields.io/github/v/release/jord-nijhuis/discord-voice-watch)](https://github.com/jord-nijhuis/discord-voice-watch/releases/latest)
 ![GitHub License](https://img.shields.io/github/license/jord-nijhuis/discord-voice-watch)
 
 > A Discord bot that notifies users when someone joins a voice channel
