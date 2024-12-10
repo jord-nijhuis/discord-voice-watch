@@ -23,7 +23,12 @@ func handleEnableCommand(session *discordgo.Session, interaction *discordgo.Inte
 	if interaction.Member == nil {
 		message = ":exclamation: You can only use this command in a server"
 	} else {
-		err = storage.RegisterUser(interaction.Member.User.ID, guild)
+
+		err = storage.CreateUser(interaction.Member.User.ID)
+
+		if err == nil {
+			err = storage.RegisterUser(interaction.Member.User.ID, guild)
+		}
 
 		if err != nil {
 			slog.Error("Could not register user", "user", interaction.Member.User.ID, "guild", guild, "error", err)

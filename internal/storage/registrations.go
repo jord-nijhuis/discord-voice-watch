@@ -138,7 +138,7 @@ func UpdateNotification(userID string, serverID string, notifiedAt time.Time, ch
 		return err
 	}
 
-	result, err := db.Exec("UPDATE registrations SET last_notified_at = ?, channel_id = ?, message_id = ? WHERE user_id = ? AND server_id = ?", notifiedAt, channelId, messageId, userID, serverID)
+	result, err := db.Exec("UPDATE registrations SET last_notified_at = ?, message_id = ? WHERE user_id = ? AND server_id = ?", notifiedAt, messageId, userID, serverID)
 
 	if err != nil {
 		return fmt.Errorf("failed to update registration: %w", err)
@@ -148,6 +148,12 @@ func UpdateNotification(userID string, serverID string, notifiedAt time.Time, ch
 
 	if err != nil || rowsAffected == 0 {
 		return errors.New("registration not found")
+	}
+
+	_, err = db.Exec("UPDATE users SET channel_id = ? WHERE id = ?", channelId, userID)
+
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return nil
@@ -161,7 +167,7 @@ func GetPreviouslyNotifiedRegistrations(serverID string) ([]Registration, error)
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	rows, err := db.Query("SELECT user_id, server_id, last_notified_at, channel_id, message_id FROM registrations WHERE server_id = ? AND last_notified_at IS NOT NULL", serverID)
+	rows, err := db.Query("SELECT r.user_id, r.server_id, r.last_notified_at, u.channel_id, r.message_id FROM registrations r INNER JOIN users u on u.id = r.user_id WHERE r.server_id = ? AND r.last_notified_at IS NOT NULL", serverID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to find registrations: %w", err)

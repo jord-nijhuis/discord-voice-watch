@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Styled the messages that are sent to users
 - The database is now properly closed on shutdown
+- Added the `users` and `servers` tables to the database
 
 ### Fixed
 - Fixed a potential concurrency issue

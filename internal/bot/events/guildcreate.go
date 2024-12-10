@@ -16,6 +16,12 @@ func OnGuildCreate(session *discordgo.Session, guild *discordgo.GuildCreate) {
 
 	slog.Debug("Guild create event", "guild", guild.Guild.ID, "name", guild.Guild.Name)
 
+	err := storage.CreateServer(guild.Guild.ID)
+
+	if err != nil {
+		slog.Error("Could not create server", "guild", guild.Guild.ID, "error", err)
+	}
+
 	setOccupancy(guild.Guild)
 
 	if time.Since(guild.JoinedAt) < time.Minute {

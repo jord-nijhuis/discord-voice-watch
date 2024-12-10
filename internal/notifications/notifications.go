@@ -150,7 +150,7 @@ func RemovePreviousNotifications(session *discordgo.Session, guildID string) {
 			)
 		}
 
-		err = storage.UpdateNotification(registration.UserID, guildID, *registration.LastNotifiedAt, nil, nil)
+		err = storage.UpdateNotification(registration.UserID, guildID, *registration.LastNotifiedAt, registration.ChannelID, nil)
 
 		if err != nil {
 			slog.Error("Could not update last notification time",
