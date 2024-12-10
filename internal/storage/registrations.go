@@ -195,3 +195,23 @@ func GetPreviouslyNotifiedRegistrations(serverID string) ([]Registration, error)
 
 	return registrations, nil
 }
+
+func RegistrationExists(userID string, serverID string) (bool, error) {
+	db, err := Database()
+
+	if err != nil {
+		return false, fmt.Errorf("failed to get database: %w", err)
+	}
+
+	row := db.QueryRow("SELECT COUNT(*) FROM registrations WHERE user_id = ? AND server_id = ? LIMIT 1", userID, serverID)
+
+	var count int
+
+	err = row.Scan(&count)
+
+	if err != nil {
+		return false, fmt.Errorf("failed to count registrations: %w", err)
+	}
+
+	return count > 0, nil
+}

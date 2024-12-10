@@ -18,7 +18,7 @@ func handleDisableCommand(session *discordgo.Session, interaction *discordgo.Int
 	guild := interaction.GuildID
 
 	var err error
-	message := ":negative_squared_cross_mark: I will no longer send you notifications when someone starts voice chatting in this server"
+	message := ":x: I will no longer send you notifications when someone starts voice chatting in this server"
 
 	if interaction.Member == nil {
 		message = ":exclamation: You can only use this command in a server"

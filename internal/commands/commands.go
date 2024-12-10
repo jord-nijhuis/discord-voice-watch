@@ -12,7 +12,7 @@ func RegisterCommands(s *discordgo.Session) {
 		{
 			Name:        "voice-watch",
 			Description: "All commands related to the voice watch bot",
-			Options:     []*discordgo.ApplicationCommandOption{enableCommand, disableCommand},
+			Options:     []*discordgo.ApplicationCommandOption{enableCommand, disableCommand, statusCommand},
 		},
 	}
 
@@ -44,6 +44,8 @@ func HandleCommand(session *discordgo.Session, interaction *discordgo.Interactio
 		handleEnableCommand(session, interaction)
 	case "disable":
 		handleDisableCommand(session, interaction)
+	case "status":
+		handleStatusCommand(session, interaction)
 	default:
 		slog.Warn("Unknown subcommand", "subcommand", interaction.ApplicationCommandData().Options[0].Name)
 		_ = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
