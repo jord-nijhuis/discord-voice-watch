@@ -40,7 +40,7 @@ jobs:
                     version: latest
 
             -   name: Dump release info
-                run: echo "${{ steps.query-release-info.outputs.release-notes }} > release-notes.txt"
+                run: echo "${{ steps.query-release-info.outputs.release-notes }}" > release-notes.txt
 
             -   name: Release
                 uses: softprops/action-gh-release@v2
