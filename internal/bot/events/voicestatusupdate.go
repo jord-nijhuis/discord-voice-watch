@@ -7,61 +7,62 @@ import (
 	"log/slog"
 )
 
-func OnVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
-	guildID := v.GuildID
-	channelID := v.ChannelID
+// OnVoiceStateUpdate is called when a user joins or leaves a voice channel
+func OnVoiceStateUpdate(session *discordgo.Session, voiceStateUpdate *discordgo.VoiceStateUpdate) {
+	guildID := voiceStateUpdate.GuildID
+	channelID := voiceStateUpdate.ChannelID
 
-	slog.Debug("Voice state update event", "user", v.UserID, "guild", guildID, "channel", channelID)
+	slog.Debug("Voice state update event", "user", voiceStateUpdate.UserID, "guild", guildID, "channel", channelID)
 
 	// The new channel id is empty. This means that the user has left a voice channel
 	if channelID == "" {
-		storage.DecrementOccupancy(guildID)
+		occupancy := storage.DecrementOccupancy(guildID)
 
-		slog.Info("User left voice channel for guild", "user", v.UserID, "guild", guildID, "occupancy", storage.GetOccupancy(guildID))
+		slog.Info("User left voice channel for guild", "user", voiceStateUpdate.UserID, "guild", guildID, "occupancy", storage.GetOccupancy(guildID))
 
-		if storage.GetOccupancy(guildID) == 0 {
-			go notifications.RemovePreviousNotifications(s, guildID)
+		if occupancy == 0 {
+			go notifications.RemovePreviousNotifications(session, guildID)
 		}
 
 		return
 	}
 
 	// If the before update is not nil, the user was previously in a voice channel and is now in another voice channel
-	if v.BeforeUpdate != nil {
+	if voiceStateUpdate.BeforeUpdate != nil {
 
 		// The before and after guild is the same, meaning that the user switched voice channels within the guild
-		if v.GuildID == v.BeforeUpdate.GuildID {
+		if voiceStateUpdate.GuildID == voiceStateUpdate.BeforeUpdate.GuildID {
 			// User changed voice channel in the same guild
-			slog.Info("User switched voice chanel in the guild, ignoring", "user", v.UserID, "guild", guildID, "occupancy", storage.GetOccupancy(guildID))
+			slog.Info("User switched voice chanel in the guild, ignoring", "user", voiceStateUpdate.UserID, "guild", guildID, "occupancy", storage.GetOccupancy(guildID))
 			return
 		}
 
 		// The before channel id is not empty, meaning that the user was previously in a voice channel on another guild
-		if v.BeforeUpdate.ChannelID != "" {
-			storage.DecrementOccupancy(v.BeforeUpdate.GuildID)
+		if voiceStateUpdate.BeforeUpdate.ChannelID != "" {
+			occupancy := storage.DecrementOccupancy(voiceStateUpdate.BeforeUpdate.GuildID)
 
 			slog.Info("User switched between guilds",
-				"user", v.UserID,
-				"oldGuild", v.BeforeUpdate.GuildID,
-				"oldOccupancy", storage.GetOccupancy(v.BeforeUpdate.GuildID),
-				"newGuild", v.GuildID,
-				"newOccupancy", storage.GetOccupancy(v.GuildID),
+				"user", voiceStateUpdate.UserID,
+				"oldGuild", voiceStateUpdate.BeforeUpdate.GuildID,
+				"oldOccupancy", storage.GetOccupancy(voiceStateUpdate.BeforeUpdate.GuildID),
+				"newGuild", voiceStateUpdate.GuildID,
+				"newOccupancy", storage.GetOccupancy(voiceStateUpdate.GuildID),
 			)
 
 			// If we sent notifications for the previous guild and the occupancy is now 0, remove the notifications
-			if storage.GetOccupancy(v.BeforeUpdate.GuildID) == 0 {
-				go notifications.RemovePreviousNotifications(s, v.BeforeUpdate.GuildID)
+			if occupancy == 0 {
+				go notifications.RemovePreviousNotifications(session, voiceStateUpdate.BeforeUpdate.GuildID)
 			}
 		}
 	}
 
 	// User joined a voice channel
-	storage.IncrementOccupancy(guildID)
+	occupancy := storage.IncrementOccupancy(guildID)
 	slog.Info(
 		"User joined a voice channel of a guild",
-		"user", v.UserID,
+		"user", voiceStateUpdate.UserID,
 		"guild", guildID,
-		"occupancy", storage.GetOccupancy(guildID),
+		"occupancy", occupancy,
 	)
 
 	hasUsersToNotify, err := storage.HasUsersToNotify(guildID)
@@ -71,8 +72,8 @@ func OnVoiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
 		return
 	}
 
-	if storage.GetOccupancy(guildID) == 1 && hasUsersToNotify {
+	if occupancy == 1 && hasUsersToNotify {
 		// Start notification process
-		go notifications.NotifyForGuild(s, guildID)
+		go notifications.NotifyActivity(session, guildID)
 	}
 }

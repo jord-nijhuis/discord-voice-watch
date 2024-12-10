@@ -16,6 +16,7 @@ import (
 var params = "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=journal_size_limit(200000000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=cache_size(-16000)"
 var db *sql.DB
 
+// InitializeDatabase initializes the database
 func InitializeDatabase() error {
 	var err error
 
@@ -59,7 +60,8 @@ func InitializeDatabase() error {
 	return nil
 }
 
-func getDatabase() (*sql.DB, error) {
+// Database returns the database connection
+func Database() (*sql.DB, error) {
 
 	if db == nil {
 		return nil, errors.New("database not initialized")

@@ -11,9 +11,11 @@ import (
 	"time"
 )
 
-func NotifyForGuild(s *discordgo.Session, guildID string) {
+// NotifyActivity sends a notification to users who have enabled notifications for the guild
+// that someone has joined a voice channel
+func NotifyActivity(session *discordgo.Session, guildID string) {
 
-	cfg, err := config.GetConfig()
+	cfg, err := config.LoadedConfig()
 
 	if err != nil {
 		slog.Error("Could not get config", "error", err)
@@ -22,7 +24,7 @@ func NotifyForGuild(s *discordgo.Session, guildID string) {
 
 	time.Sleep(cfg.Notifications.DelayBeforeSending)
 
-	guild, err := utils.GetGuild(s, guildID)
+	guild, err := utils.GetGuild(session, guildID)
 
 	if err != nil {
 
@@ -42,7 +44,7 @@ func NotifyForGuild(s *discordgo.Session, guildID string) {
 	var names []string
 
 	for _, userID := range usersInVoice {
-		names = append(names, utils.GetDisplayName(s, guildID, userID))
+		names = append(names, utils.GetDisplayName(session, guildID, userID))
 	}
 
 	usersToNotify, err := storage.GetUsersToNotify(guildID)
@@ -61,46 +63,51 @@ func NotifyForGuild(s *discordgo.Session, guildID string) {
 			continue
 		}
 
-		slog.Info("Sending notification for guild to user", "guild", guildID, "user", userID)
-
-		verb := "is"
-
-		if len(names) > 1 {
-			verb = "are"
-		}
-
-		message, err := utils.SendDirectMessage(
-			s,
-			userID,
-			fmt.Sprintf("%s %s now in voice chat of %s",
-				utils.JoinWithAnd(names),
-				verb,
-				guild.Name),
-		)
-
-		if err != nil {
-			slog.Error("Could not send notification to user",
-				"user", userID,
-				"guild", guildID,
-				"error", err,
-			)
-			continue
-		}
-
-		err = storage.UpdateNotification(userID, guildID, time.Now(), &message.ChannelID, &message.ID)
-
-		if err != nil {
-			slog.Error("Could not update last notification time",
-				"user", userID,
-				"guild", guildID,
-				"error", err,
-			)
-		}
+		NotifyUser(session, guild, userID, names)
 	}
 }
 
-func RemovePreviousNotifications(s *discordgo.Session, guildID string) {
-	cfg, err := config.GetConfig()
+// NotifyUser sends a notification to a single user about the people who have joined the voice chat
+func NotifyUser(session *discordgo.Session, guild *discordgo.Guild, userID string, names []string) {
+	slog.Info("Sending notification for guild to user", "guild", guild.ID, "user", userID)
+
+	verb := "is"
+
+	if len(names) > 1 {
+		verb = "are"
+	}
+
+	message, err := utils.SendDirectMessage(
+		session,
+		userID,
+		fmt.Sprintf(":microphone2: **%s** %s now in voice chat of **%s**",
+			utils.JoinWithAnd(names),
+			verb,
+			guild.Name),
+	)
+
+	if err != nil {
+		slog.Error("Could not send notification to user",
+			"user", userID,
+			"guild", guild.ID,
+			"error", err,
+		)
+	}
+
+	err = storage.UpdateNotification(userID, guild.ID, time.Now(), &message.ChannelID, &message.ID)
+
+	if err != nil {
+		slog.Error("Could not update last notification time",
+			"user", userID,
+			"guild", guild.ID,
+			"error", err,
+		)
+	}
+}
+
+// RemovePreviousNotifications removes previous notifications for a guild
+func RemovePreviousNotifications(session *discordgo.Session, guildID string) {
+	cfg, err := config.LoadedConfig()
 
 	if err != nil {
 		slog.Error("Could not get config", "error", err)
@@ -133,7 +140,7 @@ func RemovePreviousNotifications(s *discordgo.Session, guildID string) {
 
 		slog.Info("Deleting previous notification for guild to user", "guild", guildID, "user", registration.UserID)
 
-		err = s.ChannelMessageDelete(*registration.ChannelID, *registration.MessageID)
+		err = session.ChannelMessageDelete(*registration.ChannelID, *registration.MessageID)
 
 		if err != nil {
 			slog.Error("Could not delete previous notification",
@@ -155,6 +162,7 @@ func RemovePreviousNotifications(s *discordgo.Session, guildID string) {
 	}
 }
 
+// SendWelcomeMessage sends a welcome message to a guild
 func SendWelcomeMessage(session *discordgo.Session, guild *discordgo.Guild) {
 
 	slog.Info("Sending a welcome message", "guild", guild.ID)

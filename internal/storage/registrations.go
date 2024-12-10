@@ -21,8 +21,10 @@ type Registration struct {
 	MessageID *string
 }
 
+// RegisterUser registers a user for notifications on a server
+// If the user is already registered, this function does nothing
 func RegisterUser(userID string, serverID string) error {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return err
@@ -37,8 +39,10 @@ func RegisterUser(userID string, serverID string) error {
 	return nil
 }
 
+// UnregisterUser unregisters a user from notifications on a server
+// If the user is not registered, this function returns an error
 func UnregisterUser(userID string, serverID string) error {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return err
@@ -59,14 +63,16 @@ func UnregisterUser(userID string, serverID string) error {
 	return nil
 }
 
+// GetUsersToNotify returns a list of user IDs that should be notified for a server
+// This takes the delay between messages setting into account
 func GetUsersToNotify(serverID string) ([]string, error) {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	cfg, err := config.GetConfig()
+	cfg, err := config.LoadedConfig()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config: %w", err)
@@ -103,8 +109,9 @@ func GetUsersToNotify(serverID string) ([]string, error) {
 	return userIDs, nil
 }
 
+// HasUsersToNotify returns true if there are users to notify for a server
 func HasUsersToNotify(serverID string) (bool, error) {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return false, fmt.Errorf("failed to get database: %w", err)
@@ -123,8 +130,9 @@ func HasUsersToNotify(serverID string) (bool, error) {
 	return count > 0, nil
 }
 
+// UpdateNotification updates the last notified time for a user on a server
 func UpdateNotification(userID string, serverID string, notifiedAt time.Time, channelId *string, messageId *string) error {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return err
@@ -145,8 +153,9 @@ func UpdateNotification(userID string, serverID string, notifiedAt time.Time, ch
 	return nil
 }
 
+// GetPreviouslyNotifiedRegistrations returns a list of registrations that have been notified before for a given server
 func GetPreviouslyNotifiedRegistrations(serverID string) ([]Registration, error) {
-	db, err := getDatabase()
+	db, err := Database()
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database: %w", err)

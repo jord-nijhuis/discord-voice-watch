@@ -6,6 +6,7 @@ import (
 	"log/slog"
 )
 
+// RegisterCommands registers the commands with Discord
 func RegisterCommands(s *discordgo.Session) {
 	commands := []*discordgo.ApplicationCommand{
 		{
@@ -22,32 +23,33 @@ func RegisterCommands(s *discordgo.Session) {
 	}
 }
 
-func HandleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+// HandleCommand handles the command
+func HandleCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
 
-	if i.ApplicationCommandData().Name != "voice-watch" {
-		slog.Warn("Unknown command", "command", i.ApplicationCommandData().Name)
+	if interaction.ApplicationCommandData().Name != "voice-watch" {
+		slog.Warn("Unknown command", "command", interaction.ApplicationCommandData().Name)
 
-		_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		_ = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("Unknown command %s", i.ApplicationCommandData().Name),
+				Content: fmt.Sprintf("Unknown command %session", interaction.ApplicationCommandData().Name),
 			},
 		})
 
 		return
 	}
 
-	switch i.ApplicationCommandData().Options[0].Name {
+	switch interaction.ApplicationCommandData().Options[0].Name {
 	case "enable":
-		handleEnableCommand(s, i)
+		handleEnableCommand(session, interaction)
 	case "disable":
-		handleDisableCommand(s, i)
+		handleDisableCommand(session, interaction)
 	default:
-		slog.Warn("Unknown subcommand", "subcommand", i.ApplicationCommandData().Options[0].Name)
-		_ = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		slog.Warn("Unknown subcommand", "subcommand", interaction.ApplicationCommandData().Options[0].Name)
+		_ = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("Unknown subcommand %s", i.ApplicationCommandData().Options[0].Name),
+				Content: fmt.Sprintf("Unknown subcommand %session", interaction.ApplicationCommandData().Options[0].Name),
 			},
 		})
 	}

@@ -71,6 +71,7 @@ func LoadConfig() (Config, error) {
 	return config, nil
 }
 
+// parseLogLevel Parses the log level from a string
 func parseLogLevel(level string) slog.Level {
 	switch strings.ToLower(level) {
 	case "debug":
@@ -87,7 +88,8 @@ func parseLogLevel(level string) slog.Level {
 	}
 }
 
-func GetConfig() (Config, error) {
+// LoadedConfig Gets the configuration
+func LoadedConfig() (Config, error) {
 	if config == (Config{}) {
 		return LoadConfig()
 	}

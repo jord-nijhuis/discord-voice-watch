@@ -16,6 +16,7 @@ import (
 
 var cfg config.Config
 
+// Start starts the bot
 func Start() {
 	slog.Info("Starting bot", "version", projectRoot.Version)
 	// Load the configuration

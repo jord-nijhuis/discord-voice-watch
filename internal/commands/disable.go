@@ -6,32 +6,34 @@ import (
 	"log/slog"
 )
 
+// DisableCommand is the command to disable notifications
 var disableCommand = &discordgo.ApplicationCommandOption{
 	Name:        "disable",
 	Type:        discordgo.ApplicationCommandOptionSubCommand,
 	Description: "Disable notifications when people start voice chatting in this server",
 }
 
-func handleDisableCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	guild := i.GuildID
+// handleDisableCommand handles the disable command
+func handleDisableCommand(session *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	guild := interaction.GuildID
 
 	var err error
-	message := "You will no longer be notified"
+	message := ":negative_squared_cross_mark: I will no longer send you notifications when someone starts voice chatting in this server"
 
-	if i.Member == nil {
-		message = "You can only use this command in a server"
+	if interaction.Member == nil {
+		message = ":exclamation: You can only use this command in a server"
 	} else {
-		err = storage.UnregisterUser(i.Member.User.ID, guild)
+		err = storage.UnregisterUser(interaction.Member.User.ID, guild)
 
 		if err != nil {
-			slog.Error("Could not unregister user", "user", i.Member.User.ID, "guild", guild, "error", err)
-			message = "Could not unregister you. Please try again later."
+			slog.Error("Could not unregister user", "user", interaction.Member.User.ID, "guild", guild, "error", err)
+			message = ":exclamation: Could not unregister you. Please try again later."
 		} else {
-			slog.Info("User unregistered for guild", "user", i.Member.User.ID, "guild", guild)
+			slog.Info("User unregistered for guild", "user", interaction.Member.User.ID, "guild", guild)
 		}
 	}
 
-	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err = session.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: message,

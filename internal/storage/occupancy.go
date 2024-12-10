@@ -8,6 +8,7 @@ var (
 	lock             = sync.RWMutex{}
 )
 
+// GetOccupancy returns the occupancy for the guild
 func GetOccupancy(guildID string) int {
 	lock.RLock()
 	val, ok := channelOccupancy[guildID]
@@ -20,17 +21,29 @@ func GetOccupancy(guildID string) int {
 	return 0
 }
 
-func IncrementOccupancy(guildID string) {
-
+// SetOccupancy sets the occupancy for the guild
+func SetOccupancy(guildID string, occupancy int) {
 	lock.Lock()
-	channelOccupancy[guildID]++
+	channelOccupancy[guildID] = occupancy
 	lock.Unlock()
 }
 
-func DecrementOccupancy(guildID string) {
+// IncrementOccupancy increments the occupancy for the guild
+func IncrementOccupancy(guildID string) int {
+
+	lock.Lock()
+	channelOccupancy[guildID]++
+	defer lock.Unlock()
+
+	return channelOccupancy[guildID]
+}
+
+// DecrementOccupancy decrements the occupancy for the guild
+func DecrementOccupancy(guildID string) int {
 	// Decrement but not below 0
 	lock.Lock()
 	channelOccupancy[guildID] = max(channelOccupancy[guildID]-1, 0)
+	defer lock.Unlock()
 
-	lock.Unlock()
+	return channelOccupancy[guildID]
 }
