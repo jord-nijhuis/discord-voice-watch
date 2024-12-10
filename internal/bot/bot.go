@@ -1,6 +1,7 @@
 package bot
 
 import (
+	projectRoot "discord-voice-watch"
 	"discord-voice-watch/internal/bot/events"
 	"discord-voice-watch/internal/commands"
 	"discord-voice-watch/internal/config"
@@ -16,6 +17,7 @@ import (
 var cfg config.Config
 
 func Start() {
+	slog.Info("Starting bot", "version", projectRoot.Version)
 	// Load the configuration
 	var err error
 	cfg, err = config.LoadConfig()
@@ -61,7 +63,7 @@ func Start() {
 	// Register slash commands
 	commands.RegisterCommands(dg)
 
-	slog.Info("Notifications is running. Press CTRL+C to exit.")
+	slog.Info("Bot is running. Press CTRL+C to exit.")
 
 	// Make sure we correctly close the bot when we receive a signal
 	sc := make(chan os.Signal, 1)

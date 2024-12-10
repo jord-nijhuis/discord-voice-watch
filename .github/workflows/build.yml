@@ -1,0 +1,42 @@
+name: Build
+
+on:
+    push:
+        branches:
+            - '*'
+    pull_request:
+        branches:
+            - '*'
+
+jobs:
+
+    build:
+        strategy:
+            matrix:
+                os: [ linux, windows, darwin ]
+                arch: [ amd64, arm64 ]
+        runs-on: ubuntu-latest
+        steps:
+            -   uses: actions/checkout@v4
+
+            -   name: Set up Go
+                uses: actions/setup-go@v4
+                with:
+                    go-version: '1.23'
+
+            -   name: Build
+                run: |
+                    export output="discord-voice-watch.${{matrix.os}}-${{matrix.arch}}"
+
+                    if [ "${{matrix.os}}" = "windows" ]; then
+                        export output="${output}.exe"
+                    fi
+
+                    export version=$(git describe --tags 2> /dev/null || echo "0.0.0-`git describe --tags --long --dirty --always`")
+                    env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} go build -v -o $output -ldflags "-X discord-voice-watch.Version=$version" cmd/discord-voice-watch/main.go
+
+            -   name: Upload artifact
+                uses: actions/upload-artifact@v4
+                with:
+                    name: discord-voice-watch-${{matrix.os}}-${{matrix.arch}}
+                    path: discord-voice-watch.*
