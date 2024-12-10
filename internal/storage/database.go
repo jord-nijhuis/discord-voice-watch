@@ -17,14 +17,14 @@ var params = "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=jou
 var db *sql.DB
 
 // InitializeDatabase initializes the database
-func InitializeDatabase() error {
+func InitializeDatabase() (*sql.DB, error) {
 	var err error
 
 	db, err = sql.Open("sqlite", "file:voice-watch.db"+params)
 
 	if err != nil {
 
-		return fmt.Errorf("failed to open the database: %w", err)
+		return nil, fmt.Errorf("failed to open the database: %w", err)
 	}
 
 	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
@@ -41,7 +41,7 @@ func InitializeDatabase() error {
 		driver,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create migration instance: %w", err)
+		return nil, fmt.Errorf("failed to create migration instance: %w", err)
 	}
 
 	err = m.Up()
@@ -51,13 +51,13 @@ func InitializeDatabase() error {
 		if errors.Is(err, migrate.ErrNoChange) {
 			slog.Info("Database already up to date")
 		} else {
-			return fmt.Errorf("failed to apply migrations: %w", err)
+			return nil, fmt.Errorf("failed to apply migrations: %w", err)
 		}
 	}
 
 	slog.Info("Migrations applied successfully!")
 
-	return nil
+	return db, nil
 }
 
 // Database returns the database connection

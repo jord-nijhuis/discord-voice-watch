@@ -32,7 +32,7 @@ func Start() {
 		Level: cfg.Logging.Level,
 	})))
 
-	err = storage.InitializeDatabase()
+	db, err := storage.InitializeDatabase()
 
 	if err != nil {
 		slog.Error("Could not initialize database", err)
@@ -71,10 +71,20 @@ func Start() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	slog.Info("Received signal, stopping bot")
+
+	slog.Info("Closing discord session")
 	// Cleanly close down the Discord session.
 	err = dg.Close()
 
 	if err != nil {
 		slog.Error("Could not close discord session", err)
+	}
+
+	slog.Info("Closing database connection")
+	err = db.Close()
+
+	if err != nil {
+		slog.Error("Could not close database connection", err)
 	}
 }
