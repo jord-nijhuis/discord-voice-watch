@@ -59,7 +59,7 @@ func NotifyActivity(session *discordgo.Session, guildID string) {
 
 	for _, userID := range usersToNotify {
 		// Don't send a message to the user if they are already in the voice chat
-		if slices.Contains(usersInVoice, userID) {
+		if !cfg.Notifications.NotifySelf && slices.Contains(usersInVoice, userID) {
 			continue
 		}
 

@@ -31,6 +31,7 @@ type LoggingConfig struct {
 type NotificationsConfig struct {
 	DelayBeforeSending   time.Duration `mapstructure:"delay-before-sending"`
 	DelayBetweenMessages time.Duration `mapstructure:"delay-between-messages"`
+	NotifySelf           bool          `mapstructure:"notify-self"`
 }
 
 var config Config
@@ -47,6 +48,7 @@ func LoadConfig() (Config, error) {
 	viper.SetDefault("Logging.Level", "info")
 	viper.SetDefault("Notifications.delay-before-sending", time.Minute)
 	viper.SetDefault("Notifications.delay-between-messages", time.Hour)
+	viper.SetDefault("Notifications.notify-self", false)
 
 	err := viper.ReadInConfig() // Find and read the config file
 

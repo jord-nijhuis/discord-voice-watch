@@ -25,6 +25,7 @@ logging:
 notifications:
     delay-before-sending: 1m # How long a user should be in a voice channel before a notification is sent
     delay-between-messages: 1h # How long the bot should wait before sending another notification to the same user
+    notify-self: false # Whether the bot should send a notification to the user that just joined the voice channel. This is useful for testing purposes
 ```
 
 Be sure to replace `[TOKEN]` with the token of your bot. You can create a bot in the Discord Developer Portal. The

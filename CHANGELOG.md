@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added the `notifications.notify-self` option. When set to `true`, the bot will also send a
+  a notification to the user that just joined (if he is registered). By default, this is set to false.
+
 ### Changed
 - Styled the messages that are sent to users
 
