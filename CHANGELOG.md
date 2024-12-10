@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added the `notifications.notify-self` option. When set to `true`, the bot will also send a
   a notification to the user that just joined (if he is registered). By default, this is set to false.
+- The bot will now remove a server and all its registrations from the database when it is removed from the server.
 
 ### Changed
 - Styled the messages that are sent to users

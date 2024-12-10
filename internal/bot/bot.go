@@ -50,6 +50,7 @@ func Start() {
 	dg.AddHandler(events.OnInteractionCreate)
 	dg.AddHandler(events.OnVoiceStateUpdate)
 	dg.AddHandler(events.OnGuildCreate)
+	dg.AddHandler(events.OnGuildDelete)
 
 	// Make sure we have tbe right permissions
 	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates
